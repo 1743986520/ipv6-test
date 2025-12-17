@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>IPv6 检测跳转</title>
+    <style>
+        body { text-align: center; padding-top: 100px; font-family: Arial, sans-serif; }
+        .error { color: #e74c3c; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <div id="result"></div>
+
+    <script>
+        // 目标 IPv6 地址
+        const ipv6Target = "http://[2602:294:0:dc:1234:4321:532e:1]:5244";
+        const resultDom = document.getElementById("result");
+
+        // 检测 IPv6 支持的核心方法
+        function checkIPv6Support() {
+            // 创建 IPv6 测试地址（仅用于检测，无需真实服务）
+            const ipv6TestHost = "ipv6.google.com"; 
+            const img = new Image();
+            let timeout = null;
+
+            // 检测成功：浏览器可解析 IPv6 地址并发起请求
+            img.onload = img.onerror = function() {
+                clearTimeout(timeout);
+                window.location.href = ipv6Target;
+            };
+
+            // 检测超时（大概率无 IPv6 环境）
+            timeout = setTimeout(function() {
+                resultDom.innerHTML = '<p class="error">检测到你当前无 IPv6 网络环境，无法访问目标地址</p>';
+                img.onload = img.onerror = null;
+            }, 3000);
+
+            // 触发 IPv6 解析请求
+            img.src = `http://${ipv6TestHost}/test?${Date.now()}`;
+        }
+
+        // 页面加载后立即检测
+        window.onload = checkIPv6Support;
+    </script>
+</body>
+</html>
