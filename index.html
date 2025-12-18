@@ -3,38 +3,417 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPv6 网络环境检测</title>
+    <title>IPv6访问检测</title>
     <style>
-        body { 
-            text-align: center; 
-            padding-top: 50px; 
-            font-family: "Microsoft YaHei", Arial, sans-serif;
-            background-color: #f5f5f5;
-            color: #333;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
         .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 30px;
             background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .logo {
+            color: #667eea;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .title {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .status-box {
+            background: #f8f9fa;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin: 30px 0;
+            border-left: 5px solid #667eea;
         }
+        
+        .status-text {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
         .loading {
-            color: #3498db;
-            font-size: 18px;
+            color: #667eea;
+        }
+        
+        .success {
+            color: #10b981;
+        }
+        
+        .error {
+            color: #ef4444;
+        }
+        
+        .ip-address {
+            font-family: monospace;
+            background: #e5e7eb;
+            padding: 8px 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 14px;
+            word-break: break-all;
+        }
+        
+        .countdown {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
             margin: 20px 0;
         }
-        .success { 
-            color: #27ae60; 
-            font-size: 18px;
+        
+        .manual-link {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .manual-link:hover {
+            background: white;
+            color: #667eea;
+            border-color: #667eea;
+        }
+        
+        .error-box {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            border-radius: 10px;
+            padding: 20px;
             margin: 20px 0;
         }
-        .error { 
-            color: #e74c3c; 
-            font-size: 18px;
+        
+        .error-title {
+            color: #dc2626;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .tips {
+            text-align: left;
+            background: #f0f9ff;
+            padding: 20px;
+            border-radius: 10px;
             margin: 20px 0;
         }
+        
+        .tips h3 {
+            color: #0369a1;
+            margin-bottom: 10px;
+        }
+        
+        .tips ul {
+            padding-left: 20px;
+        }
+        
+        .tips li {
+            margin: 8px 0;
+            color: #475569;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            margin: 20px auto;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .title {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">IPv6 Gateway</div>
+        <h1 class="title">IPv6访问检测</h1>
+        
+        <div class="status-box">
+            <div class="spinner" id="spinner"></div>
+            <div id="status" class="status-text loading">正在检测IPv6网络连接...</div>
+            <div id="ip-display"></div>
+            <div id="countdown" class="countdown"></div>
+        </div>
+        
+        <div id="success-section" style="display: none;">
+            <a href="http://openlist.帝acg.xyz" id="auto-link" class="manual-link">点击立即访问网站</a>
+            <p style="color: #6b7280; margin: 10px 0;">或者等待自动跳转...</p>
+        </div>
+        
+        <div id="error-section" class="error-box" style="display: none;">
+            <div class="error-title">❌ IPv6连接失败</div>
+            <p>您的网络环境不支持IPv6协议，无法访问目标网站。</p>
+            
+            <div class="tips">
+                <h3>解决方案：</h3>
+                <ul>
+                    <li>联系您的网络服务商开通IPv6服务</li>
+                    <li>检查路由器IPv6设置并启用</li>
+                    <li>确认操作系统IPv6功能已开启</li>
+                    <li>尝试切换到支持IPv6的网络环境</li>
+                </ul>
+            </div>
+            
+            <button onclick="retryTest()" style="
+                background: #ef4444;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+                margin-top: 15px;
+            ">重新检测</button>
+        </div>
+        
+        <div class="footer">
+            <p>openlist.帝acg.xyz - 仅支持IPv6访问</p>
+            <p>检测时间: <span id="timestamp"></span></p>
+        </div>
+    </div>
+
+    <script>
+        // 您的网站地址（仅IPv6）
+        const TARGET_SITE = "http://openlist.帝acg.xyz";
+        
+        // 多个IPv6测试端点（提高检测准确性）
+        const IPV6_TEST_ENDPOINTS = [
+            "http://ipv6.sjtu.edu.cn",        // 上海交通大学
+            "http://[2001:da8:8000:1:202:120:2:100]",  // 交大IPv6直接地址
+            "http://ipv6.bupt.edu.cn",        // 北京邮电大学
+            "http://ipv6.tsinghua.edu.cn"     // 清华大学
+        ];
+        
+        let currentEndpointIndex = 0;
+        let userIPv6Address = null;
+        let testStartTime = Date.now();
+        
+        // 更新时间戳
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        
+        // 显示用户IP信息
+        function displayIPInfo() {
+            const ipDisplay = document.getElementById('ip-display');
+            if (userIPv6Address) {
+                ipDisplay.innerHTML = `
+                    <div style="margin: 10px 0;">
+                        <div style="font-size: 14px; color: #666;">检测到IPv6地址：</div>
+                        <div class="ip-address">${userIPv6Address}</div>
+                    </div>
+                `;
+            }
+        }
+        
+        // 检测IPv6连接
+        async function testIPv6Connection(endpoint) {
+            return new Promise((resolve) => {
+                const timeout = 4000; // 4秒超时
+                const timer = setTimeout(() => resolve(false), timeout);
+                
+                // 使用多种方法检测
+                const img = new Image();
+                
+                img.onload = function() {
+                    clearTimeout(timer);
+                    
+                    // 尝试获取IPv6地址
+                    getUserIPv6().then(ip => {
+                        userIPv6Address = ip;
+                        displayIPInfo();
+                    });
+                    
+                    resolve(true);
+                };
+                
+                img.onerror = function() {
+                    clearTimeout(timer);
+                    resolve(false);
+                };
+                
+                // 添加随机参数避免缓存
+                img.src = `${endpoint}/?t=${Date.now()}`;
+            });
+        }
+        
+        // 尝试获取用户IPv6地址
+        async function getUserIPv6() {
+            try {
+                // 使用WebRTC获取本地IP（可能包含IPv6）
+                const rtc = new RTCPeerConnection({iceServers: []});
+                rtc.createDataChannel('');
+                const offer = await rtc.createOffer();
+                await rtc.setLocalDescription(offer);
+                
+                return new Promise((resolve) => {
+                    rtc.onicecandidate = (e) => {
+                        if (e.candidate && e.candidate.candidate) {
+                            const candidate = e.candidate.candidate;
+                            // 提取IPv6地址
+                            const ipv6Match = candidate.match(/([a-f0-9:]+:+)+[a-f0-9]+/i);
+                            if (ipv6Match) {
+                                resolve(ipv6Match[0]);
+                            }
+                        }
+                    };
+                    
+                    // 超时返回null
+                    setTimeout(() => resolve(null), 1000);
+                });
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        // 开始检测流程
+        async function startDetection() {
+            const endpoint = IPV6_TEST_ENDPOINTS[currentEndpointIndex];
+            document.getElementById('status').innerHTML = 
+                `正在通过 ${endpoint.replace('http://', '')} 检测...`;
+            
+            const hasIPv6 = await testIPv6Connection(endpoint);
+            
+            if (hasIPv6) {
+                // IPv6检测成功
+                document.getElementById('spinner').style.display = 'none';
+                document.getElementById('status').className = 'status-text success';
+                document.getElementById('status').textContent = '✅ IPv6连接正常，正在准备跳转...';
+                
+                document.getElementById('success-section').style.display = 'block';
+                document.getElementById('error-section').style.display = 'none';
+                
+                // 开始倒计时跳转
+                startCountdown();
+                
+                // 自动跳转
+                setTimeout(() => {
+                    window.location.href = TARGET_SITE;
+                }, 5000);
+                
+            } else {
+                // 尝试下一个端点
+                currentEndpointIndex++;
+                
+                if (currentEndpointIndex < IPV6_TEST_ENDPOINTS.length) {
+                    // 继续尝试下一个测试点
+                    setTimeout(startDetection, 500);
+                } else {
+                    // 所有测试点都失败
+                    showError();
+                }
+            }
+        }
+        
+        // 显示错误页面
+        function showError() {
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('status').className = 'status-text error';
+            document.getElementById('status').textContent = '❌ 未检测到IPv6连接';
+            
+            document.getElementById('success-section').style.display = 'none';
+            document.getElementById('error-section').style.display = 'block';
+            
+            // 显示检测耗时
+            const elapsedTime = ((Date.now() - testStartTime) / 1000).toFixed(2);
+            document.getElementById('timestamp').textContent += ` | 检测耗时: ${elapsedTime}秒`;
+        }
+        
+        // 倒计时跳转
+        function startCountdown() {
+            let countdown = 5;
+            const countdownEl = document.getElementById('countdown');
+            countdownEl.style.display = 'block';
+            
+            const interval = setInterval(() => {
+                countdownEl.textContent = `${countdown}秒后自动跳转...`;
+                countdown--;
+                
+                if (countdown < 0) {
+                    clearInterval(interval);
+                    countdownEl.textContent = '正在跳转...';
+                }
+            }, 1000);
+        }
+        
+        // 重新检测
+        function retryTest() {
+            currentEndpointIndex = 0;
+            testStartTime = Date.now();
+            
+            document.getElementById('spinner').style.display = 'block';
+            document.getElementById('status').className = 'status-text loading';
+            document.getElementById('status').textContent = '正在重新检测IPv6网络连接...';
+            document.getElementById('ip-display').innerHTML = '';
+            document.getElementById('success-section').style.display = 'none';
+            document.getElementById('error-section').style.display = 'none';
+            document.getElementById('countdown').style.display = 'none';
+            document.getElementById('timestamp').textContent = new Date().toLocaleString();
+            
+            startDetection();
+        }
+        
+        // 页面加载后开始检测
+        window.onload = startDetection;
+        
+        // 防止跳转失败，添加点击链接
+        document.getElementById('auto-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = TARGET_SITE;
+        });
+    </script>
+</body>
+</html>        }
         .redirect-notice {
             color: #3498db;
             margin: 20px 0;
