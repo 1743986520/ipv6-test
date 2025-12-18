@@ -7,13 +7,13 @@
     <style>
         body { 
             text-align: center; 
-            padding-top: 100px; 
+            padding-top: 50px; 
             font-family: "Microsoft YaHei", Arial, sans-serif;
             background-color: #f5f5f5;
             color: #333;
         }
         .container {
-            max-width: 800px;
+            max-width: 600px;
             margin: 0 auto;
             padding: 30px;
             background: white;
@@ -35,6 +35,99 @@
             font-size: 18px;
             margin: 20px 0;
         }
+        .redirect-notice {
+            color: #3498db;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>IPv6 网络检测</h2>
+        <div id="result">
+            <p class="loading">正在检测IPv6连接...</p>
+        </div>
+        
+        <div id="redirect-info" style="display:none;">
+            <p class="redirect-notice">检测到IPv6网络，正在跳转到目标网站...</p>
+            <p>如果跳转失败，请手动访问：<br><strong id="target-url"></strong></p>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 配置区域 ====================
+        // 您的网站地址（检测到IPv6后跳转到这里）
+        const YOUR_WEBSITE = "http://openlist.帝acg.xyz";  // 请替换为您的实际地址
+        
+        // IPv6测试地址（用于检测）
+        const IPV6_TEST_HOST = "ipv6.sjtu.edu.cn"; // 上海交通大学IPv6测试
+        // ==================== 配置结束 ====================
+        
+        const resultDom = document.getElementById("result");
+        const redirectInfo = document.getElementById("redirect-info");
+        const targetUrl = document.getElementById("target-url");
+        
+        function checkIPv6Support() {
+            const img = new Image();
+            let timeout = null;
+            
+            // 显示目标网址
+            targetUrl.textContent = YOUR_WEBSITE;
+            
+            img.onload = img.onerror = function() {
+                clearTimeout(timeout);
+                
+                // 检测成功，跳转到您的网站
+                resultDom.innerHTML = '<p class="success">✓ IPv6连接正常</p>';
+                redirectInfo.style.display = 'block';
+                
+                console.log('IPv6检测通过，跳转到:', YOUR_WEBSITE);
+                
+                // 3秒后自动跳转
+                setTimeout(() => {
+                    window.location.href = YOUR_WEBSITE;
+                }, 3000);
+            };
+            
+            // 5秒后超时
+            timeout = setTimeout(function() {
+                resultDom.innerHTML = `
+                    <p class="error">未检测到IPv6网络连接</p>
+                    <p>当前网络可能仅支持IPv4</p>
+                    <p style="margin-top:20px;">
+                        <button onclick="retryTest()" style="padding:8px 16px; background:#3498db; color:white; border:none; border-radius:4px; cursor:pointer;">
+                            重新检测
+                        </button>
+                    </p>
+                `;
+                img.onload = img.onerror = null;
+            }, 5000);
+            
+            // 触发IPv6请求
+            img.src = `http://${IPV6_TEST_HOST}/?t=${Date.now()}`;
+        }
+        
+        function retryTest() {
+            resultDom.innerHTML = '<p class="loading">正在重新检测IPv6连接...</p>';
+            checkIPv6Support();
+        }
+        
+        // 页面加载后立即检测
+        window.onload = checkIPv6Support;
+        
+        // 如果用户手动点击链接
+        document.addEventListener('DOMContentLoaded', function() {
+            // 添加手动跳转按钮
+            setTimeout(() => {
+                const container = document.querySelector('.container');
+                const manualLink = document.createElement('p');
+                manualLink.innerHTML = `<a href="${YOUR_WEBSITE}" style="color:#e74c3c; text-decoration:none;">如长时间未跳转，请点击此处访问网站</a>`;
+                container.appendChild(manualLink);
+            }, 1000);
+        });
+    </script>
+</body>
+</html>        }
         .info {
             color: #7f8c8d;
             font-size: 14px;
