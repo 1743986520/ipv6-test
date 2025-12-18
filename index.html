@@ -2,38 +2,58 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>IPv6 检测跳转</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPv6 检测与跳转</title>
     <style>
-        body { text-align: center; padding-top: 100px; font-family: Arial, sans-serif; }
-        .error { color: #e74c3c; font-size: 18px; }
+        body { text-align: center; padding-top: 50px; font-family: Arial, sans-serif; }
+        .tip { color: #666; margin-top: 20px; }
+        .warning { color: #e74c3c; margin-top: 15px; font-weight: bold; }
+        .vpn-link { color: #2980b9; text-decoration: none; }
     </style>
 </head>
 <body>
-    <div id="result"></div>
+    <div id="status">正在检测 IPv6 网络...</div>
+    <div id="tip" class="tip"></div>
 
     <script>
-        // 目标 IPv6 地址
-        const ipv6Target = "http://openlist.帝acg.xyz";
-        const resultDom = document.getElementById("result");
+        // 配置项 - 替换为国内IPv6检测域名，目标IPv6/IPv4地址
+        const ipv6TestHost = "ipv6.baidu.com"; 
+        const ipv6TargetUrl = "https://你的ipv6域名.com"; 
+        const ipv4TargetUrl = "https://你的ipv4共用域名.com"; 
+        const vpnLink = "https://你的vpn节点链接.com"; 
 
-        // 检测 IPv6 支持的核心方法
-        function checkIPv6Support() {
-            // 创建 IPv6 测试地址（仅用于检测，无需真实服务）
-            const ipv6TestHost = "ipv6.google.com"; 
-            const img = new Image();
-            let timeout = null;
+        let isIpv6 = false;
+        const statusDom = document.getElementById("status");
+        const tipDom = document.getElementById("tip");
 
-            // 检测成功：浏览器可解析 IPv6 地址并发起请求
-            img.onload = img.onerror = function() {
-                clearTimeout(timeout);
-                window.location.href = ipv6Target;
-            };
+        // 检测逻辑：通过加载图片判断IPv6连通性
+        const img = new Image();
+        img.onload = img.onerror = function() {
+            isIpv6 = true;
+            statusDom.innerText = "检测到 IPv6 网络，正在跳转...";
+            window.location.href = ipv6TargetUrl;
+        };
+        img.src = `https://${ipv6TestHost}/favicon.ico?${Date.now()}`; 
 
-            // 检测超时（大概率无 IPv6 环境）
-            timeout = setTimeout(function() {
-                resultDom.innerHTML = '<p class="error">检测到你当前无 IPv6 网络环境，无法访问目标地址</p>';
-                img.onload = img.onerror = null;
-            }, 3000);
+        // 超时判定为IPv4环境
+        setTimeout(() => {
+            if (!isIpv6) {
+                statusDom.innerText = "未检测到 IPv6 网络";
+                tipDom.innerHTML = `
+                    <p class="warning">即将跳转到 IPv4 共用网页</p>
+                    <p>该网页总访问额度有限，可能出现访问卡顿、加载失败等情况</p>
+                    <p>推荐使用我们的 VPN，将你的 IPv4 网络通过服务器代理为 IPv6+IPv4 双栈访问本站</p>
+                    <p><a href="${vpnLink}" class="vpn-link">点击获取 VPN 节点链接</a></p>
+                `;
+                // 延迟跳转，给用户看提示
+                setTimeout(() => {
+                    window.location.href = ipv4TargetUrl;
+                }, 5000);
+            }
+        }, 3000);
+    </script>
+</body>
+</html>
 
             // 触发 IPv6 解析请求
             img.src = `http://${ipv6TestHost}/test?${Date.now()}`;
