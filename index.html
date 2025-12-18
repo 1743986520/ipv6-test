@@ -3,38 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPv6 检测与跳转</title>
+    <title>IPv6 网络环境检测</title>
     <style>
-        body { text-align: center; padding-top: 50px; font-family: Arial, sans-serif; }
-        .tip { color: #666; margin-top: 20px; }
-        .warning { color: #e74c3c; margin-top: 15px; font-weight: bold; }
-        .vpn-link { color: #2980b9; text-decoration: none; }
+        body { 
+            text-align: center; 
+            padding-top: 100px; 
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .loading {
+            color: #3498db;
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        .success { 
+            color: #27ae60; 
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        .error { 
+            color: #e74c3c; 
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        .info {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 30px;
+            line-height: 1.6;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 15px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background: #2980b9;
+        }
+        .footer {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #95a5a6;
+        }
     </style>
 </head>
 <body>
-    <div id="status">正在检测 IPv6 网络...</div>
-    <div id="tip" class="tip"></div>
+    <div class="container">
+        <h1>IPv6 网络环境检测</h1>
+        <div id="result">
+            <p class="loading">正在检测IPv6网络环境...</p>
+        </div>
+        
+        <div class="info">
+            <p><strong>什么是IPv6？</strong></p>
+            <p>IPv6是下一代互联网协议，相比IPv4提供更多的地址空间和更好的网络性能。</p>
+            <p>中国大陆正在积极推进IPv6的部署和应用。</p>
+        </div>
+        
+        <div class="footer">
+            <p>如果检测失败，请联系您的网络服务提供商咨询IPv6开通事宜</p>
+        </div>
+    </div>
 
     <script>
-        // 配置项 - 替换为国内IPv6检测域名，目标IPv6/IPv4地址
-        const ipv6TestHost = "ipv6.baidu.com"; 
-        const ipv6TargetUrl = "https://你的ipv6域名.com"; 
-        const ipv4TargetUrl = "https://你的ipv4共用域名.com"; 
-        const vpnLink = "https://你的vpn节点链接.com"; 
-
-        let isIpv6 = false;
-        const statusDom = document.getElementById("status");
-        const tipDom = document.getElementById("tip");
-
-        // 检测逻辑：通过加载图片判断IPv6连通性
-        const img = new Image();
-        img.onload = img.onerror = function() {
-            isIpv6 = true;
-            statusDom.innerText = "检测到 IPv6 网络，正在跳转...";
-            window.location.href = ipv6TargetUrl;
+        // 使用中国大陆可访问的IPv6测试地址
+        const ipv6TestHost = "ipv6.sjtu.edu.cn"; // 上海交通大学IPv6测试地址
+        const resultDom = document.getElementById("result");
+        
+        // 备用IPv6测试地址（如果主要地址不可用）
+        const backupTestHosts = [
+            "ipv6.bupt.edu.cn",      // 北京邮电大学
+            "test-ipv6.com",         // 国际通用测试地址
+            "ipv6.tsinghua.edu.cn"   // 清华大学
+        ];
+        
+        let currentTestIndex = 0;
+        let timeout = null;
+        
+        function checkIPv6Support() {
+            const testHost = currentTestIndex === 0 ? ipv6TestHost : backupTestHosts[currentTestIndex - 1];
+            resultDom.innerHTML = `<p class="loading">正在通过 ${testHost} 检测IPv6网络环境...</p>`;
+            
+            const img = new Image();
+            
+            // 检测成功：浏览器可解析IPv6地址并发起请求
+            img.onload = img.onerror = function() {
+                clearTimeout(timeout);
+                resultDom.innerHTML = `
+                    <p class="success">✓ 检测到IPv6网络环境</p>
+                    <p>正在跳转到目标网站...</p>
+                `;
+                
+                // 这里可以设置跳转地址
+                setTimeout(() => {
+                    // 示例：跳转到百度IPv6版（实际使用时替换为目标地址）
+                    window.location.href = "https://ipv6.baidu.com";
+                    // 或者使用用户指定的地址
+                    // window.location.href = ipv6Target;
+                }, 1500);
+            };
+            
+            // 检测超时（大概率无IPv6环境）
+            timeout = setTimeout(function() {
+                img.onload = img.onerror = null;
+                
+                // 尝试备用测试地址
+                if (currentTestIndex < backupTestHosts.length) {
+                    currentTestIndex++;
+                    checkIPv6Support();
+                } else {
+                    // 所有测试地址都失败
+                    showNoIPv6Message();
+                }
+            }, 4000);
+            
+            // 触发IPv6解析请求（添加随机参数避免缓存）
+            img.src = `http://${testHost}/?t=${Date.now()}`;
+        }
+        
+        function showNoIPv6Message() {
+            resultDom.innerHTML = `
+                <p class="error">未检测到IPv6网络环境</p>
+                <p>可能的原因：</p>
+                <ul style="text-align: left; display: inline-block; margin: 20px;">
+                    <li>您的网络服务商未提供IPv6服务</li>
+                    <li>路由器未开启IPv6功能</li>
+                    <li>操作系统IPv6支持未开启</li>
+                </ul>
+                <div>
+                    <a href="https://www.china-ipv6.cn/" target="_blank" class="button">了解IPv6部署</a>
+                    <button onclick="retryTest()" class="button">重新检测</button>
+                </div>
+            `;
+        }
+        
+        function retryTest() {
+            currentTestIndex = 0;
+            checkIPv6Support();
+        }
+        
+        // 页面加载后开始检测
+        window.onload = function() {
+            // 延迟1秒开始检测，确保页面完全加载
+            setTimeout(checkIPv6Support, 1000);
         };
-        img.src = `https://${ipv6TestHost}/favicon.ico?${Date.now()}`; 
-
+        
+        // 添加手动检测按钮
+        document.addEventListener('DOMContentLoaded', function() {
+            const manualCheckBtn = document.createElement('button');
+            manualCheckBtn.textContent = '手动检测IPv6';
+            manualCheckBtn.className = 'button';
+            manualCheckBtn.style.marginTop = '20px';
+            manualCheckBtn.style.backgroundColor = '#2ecc71';
+            manualCheckBtn.onclick = retryTest;
+            
+            document.querySelector('.container').appendChild(manualCheckBtn);
+        });
+    </script>
+</body>
+</html>
         // 超时判定为IPv4环境
         setTimeout(() => {
             if (!isIpv6) {
