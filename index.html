@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>IPv6 网络检测</title>
+    <title>文件访问网关</title>
     <style>
         body { 
             text-align: center; 
@@ -11,7 +11,7 @@
             background-color: #f5f5f5;
         }
         .container {
-            max-width: 500px;
+            max-width: 600px;
             margin: 0 auto;
             background: white;
             padding: 40px;
@@ -42,68 +42,141 @@
             color: #7f8c8d;
             margin-top: 20px;
         }
+        .path {
+            word-break: break-all;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 14px;
+            color: #2c3e50;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>网络环境检测</h1>
+        <h1>🔄 文件访问网关</h1>
         <div id="result">
-            <p class="loading">正在检测IPv6连接...</p>
+            <p class="loading">正在检测最优网络路径...</p>
         </div>
-        <div id="options" style="display: none;">
-            <!-- 选项将在此动态生成 -->
+        <div id="manualPanel" style="display: none;">
+            <p>自动选择失败或您可以选择：</p>
+            <button onclick="redirectTo('ipv6')">通过 IPv6 加速通道访问</button>
+            <button onclick="redirectTo('ipv4')">通过 IPv4 兼容通道访问</button>
         </div>
-        <p class="note">检测过程可能需要几秒钟</p>
+        <p class="note">正在为您跳转至目标文件，请稍候...</p>
     </div>
 
     <script>
-        const ipv6Target = "http://openlist.帝acg.xyz";
-        const ipv4Target = "http://ipv4-openlist.帝acg.xyz";
+        // ============== 【配置区】请根据你的服务修改 ==============
+        // 你的OpenList服务地址（不要以斜杠结尾）
+        const IPv6_GATEWAY = 'http://openlist.帝acg.xyz';    // IPv6专用地址
+        const IPv4_GATEWAY = 'http://ipv4-openlist.帝acg.xyz'; // IPv4备用地址
         
-        function checkIPv6Support() {
-            const resultDom = document.getElementById("result");
-            const optionsDom = document.getElementById("options");
+        // 检测超时时间（毫秒），建议1500-2500ms
+        const DETECTION_TIMEOUT = 2000;
+        // ============== 【配置区结束】 ==============
+
+        // 获取用户想要访问的原始文件路径
+        // 例如用户访问：https://files.yourdomain.com/d/.../file.txt?sign=...
+        // 那么 filePath 就是 "/d/.../file.txt?sign=..."
+        const currentUrl = new URL(window.location.href);
+        const filePath = currentUrl.pathname + currentUrl.search + currentUrl.hash; // 完整路径
+
+        let detectionCompleted = false;
+
+        // 主函数：检测并跳转
+        function initGateway() {
+            const resultDom = document.getElementById('result');
+            const manualPanel = document.getElementById('manualPanel');
             
-            const img = new Image();
-            let timeout = null;
-            
-            img.onload = img.onerror = function() {
-                clearTimeout(timeout);
-                window.location.href = ipv6Target;
-            };
-            
-            timeout = setTimeout(function() {
-                img.onload = img.onerror = null;
-                showNoIPv6Options();
-            }, 3000);
-            
-            img.src = `https://ipv6.google.com/favicon.ico?${Date.now()}`;
+            // 显示当前要访问的文件路径（可选，方便调试）
+            if(filePath && filePath !== '/') {
+                resultDom.innerHTML += `<div class="path">目标文件：${filePath}</div>`;
+            }
+
+            // 同时发起 IPv6 和 IPv4 检测
+            const ipv6Test = testConnection(IPv6_GATEWAY, 'IPv6');
+            const ipv4Test = testConnection(IPv4_GATEWAY, 'IPv4');
+
+            // 关键逻辑：使用 Promise.any，哪个先成功就用哪个
+            Promise.any([ipv6Test, ipv4Test])
+                .then((bestGateway) => {
+                    if (detectionCompleted) return;
+                    detectionCompleted = true;
+                    
+                    const finalUrl = bestGateway + filePath;
+                    console.log(`✅ 自动选择: ${bestGateway === IPv6_GATEWAY ? 'IPv6' : 'IPv4'} 通道`);
+                    console.log(`🔗 最终跳转地址: ${finalUrl}`);
+                    
+                    resultDom.innerHTML = `<p class="loading">正在通过 ${bestGateway === IPv6_GATEWAY ? 'IPv6 加速' : 'IPv4 兼容'} 通道连接...</p>`;
+                    
+                    // 延迟跳转，让用户能看到提示信息
+                    setTimeout(() => {
+                        window.location.href = finalUrl;
+                    }, 800);
+                })
+                .catch(() => {
+                    // 如果两个检测都失败，显示手动选择面板
+                    if (detectionCompleted) return;
+                    detectionCompleted = true;
+                    
+                    resultDom.innerHTML = '<p class="error">⚠️ 自动检测失败</p>';
+                    manualPanel.style.display = 'block';
+                });
         }
-        
-        function showNoIPv6Options() {
-            const resultDom = document.getElementById("result");
-            const optionsDom = document.getElementById("options");
+
+        // 检测单个网关连通性的函数
+        function testConnection(gatewayUrl, type) {
+            return new Promise((resolve, reject) => {
+                const testUrl = `${gatewayUrl}/favicon.ico?t=${Date.now()}`; // 使用 favicon 作为探测点
+                const img = new Image();
+                let timeoutId;
+
+                timeoutId = setTimeout(() => {
+                    cleanup();
+                    reject(new Error(`${type} timeout`));
+                }, DETECTION_TIMEOUT);
+
+                function cleanup() {
+                    clearTimeout(timeoutId);
+                    img.onload = img.onerror = null;
+                }
+
+                img.onload = function() {
+                    cleanup();
+                    resolve(gatewayUrl); // 返回可用的网关地址
+                };
+
+                img.onerror = function() {
+                    cleanup();
+                    // 即使是error，也认为网关可达（能返回错误响应说明网络通）
+                    resolve(gatewayUrl);
+                };
+
+                img.src = testUrl;
+            });
+        }
+
+        // 手动选择函数
+        function redirectTo(type) {
+            const gateway = type === 'ipv6' ? IPv6_GATEWAY : IPv4_GATEWAY;
+            const finalUrl = gateway + filePath;
             
-            resultDom.innerHTML = '<p class="error">未检测到IPv6连接</p>';
-            optionsDom.style.display = "block";
-            optionsDom.innerHTML = `
-                <p>请选择访问方式：</p>
-                <div>
-                    <button onclick="useVPN()">使用VPN获取IPv6</button>
-                    <button onclick="useIPv4()">使用IPv4访问（速度较慢）</button>
-                </div>
-            `;
+            document.getElementById('result').innerHTML = 
+                `<p class="loading">正在通过 ${type.toUpperCase()} 通道跳转...</p>`;
+            document.getElementById('manualPanel').style.display = 'none';
+            
+            console.log(`🔄 手动选择: ${type.toUpperCase()} 通道 -> ${finalUrl}`);
+            
+            setTimeout(() => {
+                window.location.href = finalUrl;
+            }, 500);
         }
-        
-        function useVPN() {
-            window.location.href = "https://帝acg.xyz/vice/vice/VPN_user_choose/VPN_method_2.html";
-        }
-        
-        function useIPv4() {
-            window.location.href = ipv4Target;
-        }
-        
-        window.onload = checkIPv6Support;
+
+        // 页面加载后开始检测
+        window.addEventListener('DOMContentLoaded', initGateway);
     </script>
 </body>
 </html>
