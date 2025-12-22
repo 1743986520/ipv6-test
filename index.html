@@ -6,100 +6,48 @@
     <title>文件访问网关</title>
     <style>
         body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #f0f2f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
-        .container { max-width: 560px; width: 90%; background: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
-        h1 { margin: 0 0 20px; color: #1a1a1a; font-size: 28px; }
-        .path { word-break: break-all; background: #f5f7fa; padding: 12px; border-radius: 8px; margin: 20px 0; font-family: monospace; font-size: 15px; color: #2c3e50; }
-        .loading { color: #3498db; font-size: 18px; margin: 20px 0; }
-        .error { color: #e74c3c; font-size: 18px; margin: 20px 0; }
-        button { background-color: #3498db; color: white; border: none; padding: 12px 24px; margin: 10px; border-radius: 8px; cursor: pointer; font-size: 16px; min-width: 180px; }
-        button:hover { background-color: #2980b9; }
-        .note { font-size: 14px; color: #7f8c8d; margin-top: 30px; }
+        .container { max-width: 600px; width: 90%; background: white; padding: 50px 40px; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); text-align: center; }
+        h1 { margin: 0 0 30px; color: #1a1a1a; font-size: 32px; }
+        .path { word-break: break-all; background: #f0f2f5; padding: 15px; border-radius: 12px; margin: 25px 0; font-family: monospace; font-size: 16px; color: #2c3e50; }
+        button { background-color: #27ae60; color: white; border: none; padding: 18px 32px; margin: 15px; border-radius: 12px; cursor: pointer; font-size: 20px; min-width: 280px; transition: background 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        button:hover { background-color: #219a52; transform: translateY(-2px); }
+        button.proxy { background-color: #3498db; }
+        button.proxy:hover { background-color: #2980b9; }
+        .note { font-size: 15px; color: #7f8c8d; margin-top: 40px; line-height: 1.6; }
+        .recommend { font-size: 14px; color: #27ae60; margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔄 文件访问网关</h1>
-        <div id="result">
-            <p class="loading">正在检测最优网络路径...</p>
-        </div>
-        <div id="manualPanel" style="display: none;">
-            <p>自动检测失败，请手动选择：</p>
-            <button onclick="redirectTo('main')">直连主站（IPv6 优先）</button>
-            <br>
-            <button onclick="redirectTo('proxy')">代理备用站（IPv4 兼容）</button>
-        </div>
-        <p class="note">检测直接向主站发送请求，确保准确性</p>
+        <div id="pathInfo"></div>
+        <p style="font-size: 20px; margin: 30px 0; color: #2c3e50;">请选择访问通道</p>
+        <button onclick="redirectTo('main')">直连主站（IPv6 优先）</button>
+        <div class="recommend">推荐！速度更快、无限流风险</div>
+        <button class="proxy" onclick="redirectTo('proxy')">代理备用站（IPv4 兼容）</button>
+        <p class="note">如果您有稳定的 IPv6 网络（如电信/联通宽带），请选择“直连主站”享受最佳速度。<br>如果访问卡顿或不确定，请选择“代理备用站”确保稳定。</p>
     </div>
 
     <script>
         // ============== 【配置区】 ==============
-        const MAIN_GATEWAY = 'http://openlist.帝acg.xyz';      // 主站（直连，优先）
+        const MAIN_GATEWAY = 'http://openlist.帝acg.xyz';      // 主站（直连，优先，无代理）
         const PROXY_GATEWAY = 'http://ipv4-openlist.帝acg.xyz'; // 代理备用站
-
-        // 直接测试主站的小资源（你的服务器必须有这个文件）
-        const TEST_URL = MAIN_GATEWAY + '/favicon.ico?t=' + Date.now();
-
-        const DETECTION_TIMEOUT = 8000;  // 中国网络建议 7000~10000ms
         // ============== 配置结束 ==============
 
         const url = new URL(window.location.href);
         const filePath = url.pathname + url.search + url.hash || '/';
 
-        let detectionDone = false;
-
-        function init() {
-            const result = document.getElementById('result');
-            const manual = document.getElementById('manualPanel');
-
-            if (filePath !== '/') {
-                result.innerHTML += `<div class="path">目标路径：<strong>${filePath}</strong></div>`;
-            }
-
-            // 直接向主站发送 HEAD 请求测试连通性
-            fetch(TEST_URL, { 
-                method: 'HEAD',
-                mode: 'no-cors'  // 避免 CORS 问题，但 status 不可读，用 catch 区分
-            })
-            .then(response => {
-                // no-cors 下总是 opaque，但能进入 then 说明连接成功
-                if (detectionDone) return;
-                detectionDone = true;
-                performRedirect(MAIN_GATEWAY, '直连主站（连接成功）');
-            })
-            .catch(() => {
-                // 连接失败或超时
-                if (detectionDone) return;
-                detectionDone = true;
-                performRedirect(PROXY_GATEWAY, '代理备用站（主站连接失败）');
-            });
-
-            // 额外超时保护（防止 fetch 卡死）
-            setTimeout(() => {
-                if (!detectionDone) {
-                    detectionDone = true;
-                    result.innerHTML = '<p class="error">⚠️ 检测超时</p>';
-                    manual.style.display = 'block';
-                }
-            }, DETECTION_TIMEOUT + 1000);
-        }
-
-        function performRedirect(gateway, channelName) {
-            const finalUrl = gateway + filePath;
-            document.getElementById('result').innerHTML = 
-                `<p class="loading">已选择 <strong>${channelName}</strong><br>正在跳转...</p>`;
-            
-            setTimeout(() => {
-                window.location.href = finalUrl;
-            }, 800);
+        // 显示目标路径（你的例子会显示 /d/AZ/測試?sign=...）
+        if (filePath !== '/') {
+            document.getElementById('pathInfo').innerHTML = 
+                `<div class="path">目标文件/文件夹：<strong>${filePath}</strong></div>`;
         }
 
         function redirectTo(type) {
             const gateway = type === 'main' ? MAIN_GATEWAY : PROXY_GATEWAY;
-            const name = type === 'main' ? '直连主站' : '代理备用站';
-            performRedirect(gateway, name);
+            const finalUrl = gateway + filePath;
+            window.location.href = finalUrl;
         }
-
-        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
