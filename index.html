@@ -36,10 +36,10 @@
         const MAIN_GATEWAY = 'http://openlist.帝acg.xyz';      // 主站（直连，优先，无代理）
         const PROXY_GATEWAY = 'http://ipv4-openlist.帝acg.xyz'; // 代理备用站（防限流）
 
-        // 国内可靠 IPv6-only 测试资源（v6.ipgg.cn 是纯IPv6 测试站点）
-        const IPV6_ONLY_TEST = 'https://v6.ipgg.cn/favicon.ico?t=' + Date.now();
+        // 国内纯 IPv6-only 测试资源（关键！只解析 IPv6，无 IPv4）
+        const IPV6_ONLY_TEST = 'https://6.ipw.cn/?t=' + Date.now();  // 返回纯文本 IP，超小超快
 
-        const DETECTION_TIMEOUT = 7000;  // 中国网络建议 6000~8000ms
+        const DETECTION_TIMEOUT = 10000;  // 中国网络建议 7000~10000ms，给稳定 IPv6 足够时间
         // ============== 配置结束 ==============
 
         const url = new URL(window.location.href);
