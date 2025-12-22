@@ -5,69 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文件访问网关</title>
     <style>
-        body { 
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #f0f2f5;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-        }
-        .container {
-            max-width: 560px;
-            width: 90%;
-            background: white;
-            padding: 40px 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        h1 {
-            margin: 0 0 20px;
-            color: #1a1a1a;
-            font-size: 28px;
-        }
-        .path {
-            word-break: break-all;
-            background: #f5f7fa;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 20px 0;
-            font-family: monospace;
-            font-size: 15px;
-            color: #2c3e50;
-        }
-        .loading {
-            color: #3498db;
-            font-size: 18px;
-            margin: 20px 0;
-        }
-        .error {
-            color: #e74c3c;
-            font-size: 18px;
-            margin: 20px 0;
-        }
-        button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            margin: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            min-width: 180px;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        .note {
-            font-size: 14px;
-            color: #7f8c8d;
-            margin-top: 30px;
-        }
+        /* 你之前的樣式保持不變 */
+        body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #f0f2f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
+        .container { max-width: 560px; width: 90%; background: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
+        h1 { margin: 0 0 20px; color: #1a1a1a; font-size: 28px; }
+        .path { word-break: break-all; background: #f5f7fa; padding: 12px; border-radius: 8px; margin: 20px 0; font-family: monospace; font-size: 15px; color: #2c3e50; }
+        .loading { color: #3498db; font-size: 18px; margin: 20px 0; }
+        .error { color: #e74c3c; font-size: 18px; margin: 20px 0; }
+        button { background-color: #3498db; color: white; border: none; padding: 12px 24px; margin: 10px; border-radius: 8px; cursor: pointer; font-size: 16px; min-width: 180px; }
+        button:hover { background-color: #2980b9; }
+        .note { font-size: 14px; color: #7f8c8d; margin-top: 30px; }
     </style>
 </head>
 <body>
@@ -78,19 +25,22 @@
         </div>
         <div id="manualPanel" style="display: none;">
             <p>自动检测失败，请手动选择：</p>
-            <button onclick="redirectTo('ipv6')">IPv6 加速通道（推荐）</button>
+            <button onclick="redirectTo('main')">直连主站（IPv6 优先）</button>
             <br>
-            <button onclick="redirectTo('ipv4')">IPv4 兼容通道</button>
+            <button onclick="redirectTo('proxy')">代理备用站（IPv4 兼容）</button>
         </div>
-        <p class="note">检测完成后将自动跳转至目标文件/文件夹</p>
+        <p class="note">将优先选择最快、无限流的通道</p>
     </div>
 
     <script>
-        // ============== 【配置区】请修改这里 ==============
-        const IPv6_GATEWAY = 'http://openlist.帝acg.xyz';      // IPv6 主站（直连）
-        const IPv4_GATEWAY = 'http://ipv4-openlist.帝acg.xyz';  // IPv4 备用站
-        const TEST_RESOURCE = '/favicon.ico?t=' + Date.now();   // 检测资源（小文件）
-        const DETECTION_TIMEOUT = 4000;  // 超时时间（毫秒），建议 3500~5000
+        // ============== 【配置区】 ==============
+        const MAIN_GATEWAY = 'http://openlist.帝acg.xyz';      // 主站（直连，优先，无代理）
+        const PROXY_GATEWAY = 'http://ipv4-openlist.帝acg.xyz'; // 代理备用站（防限流）
+        
+        // 中國國內 IPv6-only 測試資源（關鍵！穩定、可訪問）
+        const IPV6_ONLY_TEST = 'https://testipv6.cn/ipv6only.gif?t=' + Date.now();
+        
+        const DETECTION_TIMEOUT = 5000;  // 中國網絡建議稍長一點，4500~6000ms
         // ============== 配置结束 ==============
 
         const url = new URL(window.location.href);
@@ -106,33 +56,30 @@
                 result.innerHTML += `<div class="path">目标路径：<strong>${filePath}</strong></div>`;
             }
 
-            // 优先严格检测 IPv6（只有真正加载成功才用）
-            testGatewayStrict(IPv6_GATEWAY, 'IPv6 加速通道')
-                .then(gateway => {
+            // 严格检测國內 IPv6-only 资源
+            testIPv6Only()
+                .then(() => {
                     if (detectionDone) return;
                     detectionDone = true;
-                    performRedirect(gateway, 'IPv6 加速通道');
+                    performRedirect(MAIN_GATEWAY, '直连主站（IPv6 可用）');
                 })
                 .catch(() => {
-                    // IPv6 失败 → 切换到 IPv4（IPv4 几乎总是成功）
                     if (detectionDone) return;
                     detectionDone = true;
-                    performRedirect(IPv4_GATEWAY, 'IPv4 兼容通道');
-                })
-                .finally(() => {
-                    // 万一都超时，显示手动选择
-                    setTimeout(() => {
-                        if (!detectionDone) {
-                            detectionDone = true;
-                            result.innerHTML = '<p class="error">⚠️ 检测超时</p>';
-                            manual.style.display = 'block';
-                        }
-                    }, DETECTION_TIMEOUT + 1000);
+                    performRedirect(PROXY_GATEWAY, '代理备用站（IPv4 兼容）');
                 });
+
+            // 整体超时保护
+            setTimeout(() => {
+                if (!detectionDone) {
+                    detectionDone = true;
+                    result.innerHTML = '<p class="error">⚠️ 检测超时</p>';
+                    manual.style.display = 'block';
+                }
+            }, DETECTION_TIMEOUT + 1000);
         }
 
-        // 严格检测：只有 onload 才成功（使用 Image）
-        function testGatewayStrict(gateway) {
+        function testIPv6Only() {
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 let timedOut = false;
@@ -151,7 +98,7 @@
                 img.onload = () => {
                     if (!timedOut) {
                         cleanup();
-                        resolve(gateway);
+                        resolve();
                     }
                 };
 
@@ -160,7 +107,7 @@
                     reject('error');
                 };
 
-                img.src = gateway + TEST_RESOURCE;
+                img.src = IPV6_ONLY_TEST;
             });
         }
 
@@ -175,8 +122,8 @@
         }
 
         function redirectTo(type) {
-            const gateway = type === 'ipv6' ? IPv6_GATEWAY : IPv4_GATEWAY;
-            const name = type === 'ipv6' ? 'IPv6 加速通道' : 'IPv4 兼容通道';
+            const gateway = type === 'main' ? MAIN_GATEWAY : PROXY_GATEWAY;
+            const name = type === 'main' ? '直连主站' : '代理备用站';
             performRedirect(gateway, name);
         }
 
