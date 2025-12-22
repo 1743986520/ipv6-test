@@ -28,18 +28,18 @@
             <br>
             <button onclick="redirectTo('proxy')">代理备用站（IPv4 兼容）</button>
         </div>
-        <p class="note">将优先选择最快、无限流的通道</p>
+        <p class="note">检测直接向主站发送请求，确保准确性</p>
     </div>
 
     <script>
         // ============== 【配置区】 ==============
-        const MAIN_GATEWAY = 'http://openlist.帝acg.xyz';      // 主站（直连，优先，无代理）
-        const PROXY_GATEWAY = 'http://ipv4-openlist.帝acg.xyz'; // 代理备用站（防限流）
+        const MAIN_GATEWAY = 'http://openlist.帝acg.xyz';      // 主站（直连，优先）
+        const PROXY_GATEWAY = 'http://ipv4-openlist.帝acg.xyz'; // 代理备用站
 
-        // 国内纯 IPv6-only 测试资源（关键！只解析 IPv6，无 IPv4）
-        const IPV6_ONLY_TEST = 'https://6.ipw.cn/?t=' + Date.now();  // 返回纯文本 IP，超小超快
+        // 直接测试主站的小资源（你的服务器必须有这个文件）
+        const TEST_URL = MAIN_GATEWAY + '/favicon.ico?t=' + Date.now();
 
-        const DETECTION_TIMEOUT = 10000;  // 中国网络建议 7000~10000ms，给稳定 IPv6 足够时间
+        const DETECTION_TIMEOUT = 8000;  // 中国网络建议 7000~10000ms
         // ============== 配置结束 ==============
 
         const url = new URL(window.location.href);
@@ -55,18 +55,25 @@
                 result.innerHTML += `<div class="path">目标路径：<strong>${filePath}</strong></div>`;
             }
 
-            testIPv6Only()
-                .then(() => {
-                    if (detectionDone) return;
-                    detectionDone = true;
-                    performRedirect(MAIN_GATEWAY, '直连主站（IPv6 稳定可用）');
-                })
-                .catch(() => {
-                    if (detectionDone) return;
-                    detectionDone = true;
-                    performRedirect(PROXY_GATEWAY, '代理备用站（IPv4 兼容）');
-                });
+            // 直接向主站发送 HEAD 请求测试连通性
+            fetch(TEST_URL, { 
+                method: 'HEAD',
+                mode: 'no-cors'  // 避免 CORS 问题，但 status 不可读，用 catch 区分
+            })
+            .then(response => {
+                // no-cors 下总是 opaque，但能进入 then 说明连接成功
+                if (detectionDone) return;
+                detectionDone = true;
+                performRedirect(MAIN_GATEWAY, '直连主站（连接成功）');
+            })
+            .catch(() => {
+                // 连接失败或超时
+                if (detectionDone) return;
+                detectionDone = true;
+                performRedirect(PROXY_GATEWAY, '代理备用站（主站连接失败）');
+            });
 
+            // 额外超时保护（防止 fetch 卡死）
             setTimeout(() => {
                 if (!detectionDone) {
                     detectionDone = true;
@@ -74,38 +81,6 @@
                     manual.style.display = 'block';
                 }
             }, DETECTION_TIMEOUT + 1000);
-        }
-
-        function testIPv6Only() {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                let timedOut = false;
-
-                const timeout = setTimeout(() => {
-                    timedOut = true;
-                    cleanup();
-                    reject('timeout');
-                }, DETECTION_TIMEOUT);
-
-                function cleanup() {
-                    clearTimeout(timeout);
-                    img.onload = img.onerror = null;
-                }
-
-                img.onload = () => {
-                    if (!timedOut) {
-                        cleanup();
-                        resolve();
-                    }
-                };
-
-                img.onerror = () => {
-                    cleanup();
-                    reject('error');
-                };
-
-                img.src = IPV6_ONLY_TEST;
-            });
         }
 
         function performRedirect(gateway, channelName) {
