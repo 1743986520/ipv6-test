@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文件访问网关</title>
     <style>
-        /* 你之前的樣式保持不變 */
         body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #f0f2f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
         .container { max-width: 560px; width: 90%; background: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
         h1 { margin: 0 0 20px; color: #1a1a1a; font-size: 28px; }
@@ -36,11 +35,11 @@
         // ============== 【配置区】 ==============
         const MAIN_GATEWAY = 'http://openlist.帝acg.xyz';      // 主站（直连，优先，无代理）
         const PROXY_GATEWAY = 'http://ipv4-openlist.帝acg.xyz'; // 代理备用站（防限流）
-        
-        // 中國國內 IPv6-only 測試資源（關鍵！穩定、可訪問）
-        const IPV6_ONLY_TEST = 'https://testipv6.cn/ipv6only.gif?t=' + Date.now();
-        
-        const DETECTION_TIMEOUT = 5000;  // 中國網絡建議稍長一點，4500~6000ms
+
+        // 国内可靠 IPv6-only 测试资源（v6.ipgg.cn 是纯IPv6 测试站点）
+        const IPV6_ONLY_TEST = 'https://v6.ipgg.cn/favicon.ico?t=' + Date.now();
+
+        const DETECTION_TIMEOUT = 7000;  // 中国网络建议 6000~8000ms
         // ============== 配置结束 ==============
 
         const url = new URL(window.location.href);
@@ -56,12 +55,11 @@
                 result.innerHTML += `<div class="path">目标路径：<strong>${filePath}</strong></div>`;
             }
 
-            // 严格检测國內 IPv6-only 资源
             testIPv6Only()
                 .then(() => {
                     if (detectionDone) return;
                     detectionDone = true;
-                    performRedirect(MAIN_GATEWAY, '直连主站（IPv6 可用）');
+                    performRedirect(MAIN_GATEWAY, '直连主站（IPv6 稳定可用）');
                 })
                 .catch(() => {
                     if (detectionDone) return;
@@ -69,7 +67,6 @@
                     performRedirect(PROXY_GATEWAY, '代理备用站（IPv4 兼容）');
                 });
 
-            // 整体超时保护
             setTimeout(() => {
                 if (!detectionDone) {
                     detectionDone = true;
