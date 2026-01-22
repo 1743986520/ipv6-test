@@ -3,51 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文件访问网关</title>
+    <title>文件訪問網關</title>
     <style>
-        body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #f0f2f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
-        .container { max-width: 600px; width: 90%; background: white; padding: 50px 40px; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); text-align: center; }
-        h1 { margin: 0 0 30px; color: #1a1a1a; font-size: 32px; }
-        .path { word-break: break-all; background: #f0f2f5; padding: 15px; border-radius: 12px; margin: 25px 0; font-family: monospace; font-size: 16px; color: #2c3e50; }
-        button { background-color: #27ae60; color: white; border: none; padding: 18px 32px; margin: 15px; border-radius: 12px; cursor: pointer; font-size: 20px; min-width: 280px; transition: background 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        button:hover { background-color: #219a52; transform: translateY(-2px); }
-        button.proxy { background-color: #3498db; }
-        button.proxy:hover { background-color: #2980b9; }
-        .note { font-size: 15px; color: #7f8c8d; margin-top: 40px; line-height: 1.6; }
-        .recommend { font-size: 14px; color: #27ae60; margin-top: 10px; font-weight: bold; }
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f2f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+        .container {
+            max-width: 700px;
+            width: 90%;
+            background: white;
+            padding: 50px 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            text-align: center;
+            position: relative;
+        }
+        h1 {
+            margin: 0 0 30px;
+            color: #1a1a1a;
+            font-size: 32px;
+        }
+        .path {
+            word-break: break-all;
+            background: #f0f2f5;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 25px 0;
+            font-family: monospace;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+        button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 18px 32px;
+            margin: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 20px;
+            min-width: 280px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            background-color: #219a52;
+            transform: translateY(-2px);
+        }
+        button.proxy {
+            background-color: #3498db;
+        }
+        button.proxy:hover {
+            background-color: #2980b9;
+        }
+        .note {
+            font-size: 15px;
+            color: #7f8c8d;
+            margin-top: 40px;
+            line-height: 1.6;
+        }
+        .recommend {
+            font-size: 14px;
+            color: #27ae60;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .language-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .lang-select {
+            padding: 8px 36px 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8.825L1.175 4 2 3.175 6 7.175l4-4L10.825 4z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            transition: all 0.2s;
+        }
+        .lang-select:hover {
+            border-color: #27ae60;
+            box-shadow: 0 0 0 3px rgba(39,174,96,0.1);
+        }
+        .lang-select:focus {
+            outline: none;
+            border-color: #27ae60;
+            box-shadow: 0 0 0 3px rgba(39,174,96,0.2);
+        }
+        .lang-indicator {
+            position: absolute;
+            top: 24px;
+            left: 20px;
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+        @media (max-width: 768px) {
+            .container { padding: 40px 20px; }
+            .language-selector {
+                position: static;
+                display: flex;
+                justify-content: center;
+                margin: 0 auto 20px;
+            }
+            .lang-indicator {
+                position: static;
+                text-align: center;
+                margin-bottom: 8px;
+            }
+            button { min-width: 240px; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔄 文件访问网关</h1>
+        <div class="lang-indicator" id="langIndicator"></div>
+        <div class="language-selector">
+            <select id="langSelect" class="lang-select" onchange="changeLanguage(this.value)">
+                <option value="zh-CN">简体中文</option>
+                <option value="zh-TW">繁體中文</option>
+                <option value="en">English</option>
+            </select>
+        </div>
+       
+        <h1 id="title">🔄 文件訪問網關</h1>
         <div id="pathInfo"></div>
-        <p style="font-size: 20px; margin: 30px 0; color: #2c3e50;">请选择访问通道</p>
-        <button onclick="redirectTo('main')">直连主站（IPv6 优先）</button>
-        <div class="recommend">推荐！速度更快、无限流风险</div>
-        <button class="proxy" onclick="redirectTo('proxy')">代理备用站（IPv4 兼容）</button>
-        <p class="note">如果您有稳定的 IPv6 网络（如电信/联通宽带），请选择“直连主站”享受最佳速度。<br>如果访问卡顿或不确定，请选择“代理备用站”确保稳定。</p>
+        <p id="channelPrompt" style="font-size: 20px; margin: 30px 0; color: #2c3e50;">请选择访问通道</p>
+        <button id="mainBtn" onclick="redirectTo('main')">直连主站（IPv6 优先）</button>
+        <div id="mainRecommend" class="recommend">推荐！速度更快、无限流风险</div>
+        <button id="proxyBtn" class="proxy" onclick="redirectTo('proxy')">代理备用站（IPv4 兼容）</button>
+        <div id="proxyDescription"></div>
+        <p id="note" class="note">如果您有稳定的 IPv6 网络（如电信/联通宽带），请选择"直连主站"享受最佳速度。<br>如果访问卡顿或不确定，请选择"代理备用站"确保稳定。</p>
     </div>
 
     <script>
         // ============== 【配置区】 ==============
-        const MAIN_GATEWAY = 'http://openlist.帝acg.xyz';      // 主站（直连，优先，无代理）
-        const PROXY_GATEWAY = 'http://ipv4-openlist.帝acg.xyz'; // 代理备用站
+        const MAIN_GATEWAY = 'http://openlist.帝acg.xyz';
+        const PROXY_GATEWAY = 'http://ipv4-openlist.帝acg.xyz';
         // ============== 配置结束 ==============
+
+        // ============== 【多语言文本配置】 ==============
+        const translations = {
+            'zh-CN': {
+                title: '🔄 文件访问网关',
+                targetFile: '目标文件/文件夹：',
+                channelPrompt: '请选择访问通道',
+                mainBtn: '直连主站（IPv6 优先）',
+                mainRecommend: '推荐！速度更快、无流量限制风险',
+                proxyBtn: '代理备用站（IPv4 兼容）',
+                note: '如果您有稳定的 IPv6 网络（如电信/联通宽带），请选择"直连主站"享受最佳速度。<br>如果访问卡顿或不确定，请选择"代理备用站"确保稳定。',
+                langIndicator: '当前语言：简体中文'
+            },
+            'zh-TW': {
+                title: '🔄 檔案存取閘道',
+                targetFile: '目標檔案/資料夾：',
+                channelPrompt: '請選擇存取通道',
+                mainBtn: '直連主站（IPv6 優先）',
+                mainRecommend: '推薦！速度更快、無流量限制風險',
+                proxyBtn: '代理備用站（IPv4 相容）',
+                note: '如果您有穩定的 IPv6 網路（如電信/聯通寬頻），請選擇「直連主站」享受最佳速度。<br>如果存取卡頓或不確定，請選擇「代理備用站」確保穩定。',
+                langIndicator: '目前語言：繁體中文'
+            },
+            'en': {
+                title: '🔄 File Access Gateway',
+                targetFile: 'Target file/folder:',
+                channelPrompt: 'Please select access channel',
+                mainBtn: 'Direct Main Site (IPv6 Priority)',
+                mainRecommend: 'Recommended! Faster speed, no traffic limit risk',
+                proxyBtn: 'Proxy Backup Site (IPv4 Compatible)',
+                note: 'If you have a stable IPv6 network (e.g., Telecom/Unicom broadband), choose "Direct Main Site" for the best speed.<br>If access is slow or you are unsure, choose "Proxy Backup Site" for stable access.',
+                langIndicator: 'Current language: English'
+            }
+        };
+        // ============== 多语言配置结束 ==============
 
         const url = new URL(window.location.href);
         const filePath = url.pathname + url.search + url.hash || '/';
 
-        // 显示目标路径（你的例子会显示 /d/AZ/測試?sign=...）
-        if (filePath !== '/') {
-            document.getElementById('pathInfo').innerHTML = 
-                `<div class="path">目标文件/文件夹：<strong>${filePath}</strong></div>`;
+        // 自動偵測瀏覽器語言偏好
+        function detectBrowserLang() {
+            const langs = navigator.languages || [navigator.language || navigator.userLanguage || 'en'];
+            for (let lang of langs) {
+                lang = lang.toLowerCase();
+                if (lang.startsWith('zh-tw') || lang.startsWith('zh-hk')) return 'zh-TW';
+                if (lang.startsWith('zh-cn') || (lang.startsWith('zh') && !lang.includes('tw') && !lang.includes('hk'))) return 'zh-CN';
+                if (lang.startsWith('en')) return 'en';
+            }
+            return 'en'; // 最終 fallback
         }
 
+        // 決定最終語言：使用者手動選擇 > 瀏覽器偏好
+        let currentLang = localStorage.getItem('preferredLanguage') || detectBrowserLang();
+
+        // 初始化頁面
+        function initPage() {
+            applyLanguage(currentLang);
+
+            // 設定下拉選單的選中狀態
+            document.getElementById('langSelect').value = currentLang;
+
+            // 顯示目標路徑（如果有）
+            if (filePath !== '/') {
+                const pathInfo = document.getElementById('pathInfo');
+                const targetFileText = translations[currentLang].targetFile || 'Target:';
+                pathInfo.innerHTML = `<div class="path">${targetFileText}<strong>${filePath}</strong></div>`;
+            }
+
+            // 更新語言指示器（可選）
+            document.getElementById('langIndicator').textContent = translations[currentLang].langIndicator;
+        }
+
+        // 應用語言
+        function applyLanguage(lang) {
+            const langData = translations[lang] || translations['en'];
+            document.getElementById('title').textContent = langData.title;
+            document.getElementById('channelPrompt').textContent = langData.channelPrompt;
+            document.getElementById('mainBtn').textContent = langData.mainBtn;
+            document.getElementById('mainRecommend').textContent = langData.mainRecommend;
+            document.getElementById('proxyBtn').textContent = langData.proxyBtn;
+            document.getElementById('note').innerHTML = langData.note;
+        }
+
+        // 手動更改語言（並記住）
+        function changeLanguage(lang) {
+            if (translations[lang]) {
+                currentLang = lang;
+                localStorage.setItem('preferredLanguage', lang);
+                initPage();
+            }
+        }
+
+        // 跳轉
         function redirectTo(type) {
             const gateway = type === 'main' ? MAIN_GATEWAY : PROXY_GATEWAY;
-            const finalUrl = gateway + filePath;
-            window.location.href = finalUrl;
+            window.location.href = gateway + filePath;
         }
+
+        // 頁面載入完成後初始化
+        document.addEventListener('DOMContentLoaded', initPage);
     </script>
 </body>
 </html>
