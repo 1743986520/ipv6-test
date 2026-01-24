@@ -43,12 +43,26 @@ p{
 
 <script>
 /* ================== 配置 ================== */
-const MAIN_SITE = 'http://openlist.帝acg.xyz'; // 只有 AAAA
-const BACKUPS = [
-    'http://1-openlist.帝acg.xyz',
-    'http://2-openlist.帝acg.xyz',
-    'http://3-openlist.帝acg.xyz'
+
+/* IPv6 探测站点（必须是 AAAA） */
+const IPV6_CHECK_SITE = 'https://openlist.帝acg.xyz';
+
+/* IPv6 可用 → 直连竞速 */
+const DIRECT_SITES = [
+    'https://openlist.帝acg.xyz',
+    'https://openlist-standby.帝acg.xyz'
 ];
+
+/* IPv6 不可用 → 代理竞速 */
+const PROXY_SITES = [
+    'https://1-openlist.帝acg.xyz',
+    'https://2-openlist.帝acg.xyz',
+    'https://3-openlist.帝acg.xyz',
+    'https://1-openlist-standby.帝acg.xyz',
+    'https://2-openlist-standby.帝acg.xyz',
+    'https://3-openlist-standby.帝acg.xyz'
+];
+
 /* ========================================= */
 
 const LANG = (() => {
@@ -62,81 +76,102 @@ const TEXT = {
     cn:{
         title:'🔄 文件访问网关',
         checking:'正在检测 IPv6 网络…',
-        v6:'IPv6 可用，跳转主站…',
-        v4:'IPv6 不可用，选择备用节点…'
+        v6:'IPv6 可用，测速直连节点…',
+        v4:'IPv6 不可用，测速代理节点…',
+        go:'已选择最快节点，正在跳转…'
     },
     tw:{
         title:'🔄 檔案存取閘道',
         checking:'正在檢測 IPv6 網路…',
-        v6:'IPv6 可用，跳轉主站…',
-        v4:'IPv6 不可用，選擇備用節點…'
+        v6:'IPv6 可用，測速直連節點…',
+        v4:'IPv6 不可用，測速代理節點…',
+        go:'已選擇最快節點，正在跳轉…'
     },
     en:{
         title:'🔄 File Gateway',
         checking:'Checking IPv6 connectivity…',
-        v6:'IPv6 available, redirecting…',
-        v4:'IPv6 unavailable, using backup…'
+        v6:'IPv6 available, testing direct nodes…',
+        v4:'IPv6 unavailable, testing proxy nodes…',
+        go:'Fastest node selected, redirecting…'
     }
 };
 
 document.getElementById('title').textContent = TEXT[LANG].title;
 document.getElementById('status').textContent = TEXT[LANG].checking;
 
+const statusEl = document.getElementById('status');
+
 const path =
     location.pathname +
     location.search +
     location.hash;
 
+/* IPv6 检测 */
 function checkIPv6() {
     return new Promise(resolve => {
         const img = new Image();
-        let finished = false;
+        let done = false;
 
-        img.onload = () => {
-            if (!finished) {
-                finished = true;
-                resolve(true);
-            }
-        };
+        img.onload = () => !done && (done = true, resolve(true));
+        img.onerror = () => !done && (done = true, resolve(false));
 
-        img.onerror = () => {
-            if (!finished) {
-                finished = true;
-                resolve(false);
-            }
-        };
-
-        img.src = MAIN_SITE + '/favicon.ico?_' + Date.now();
+        img.src = IPV6_CHECK_SITE + '/favicon.ico?_=' + Date.now();
 
         setTimeout(() => {
-            if (!finished) {
-                finished = true;
+            if (!done) {
+                done = true;
                 resolve(false);
             }
         }, 2000);
     });
 }
 
-function pickBackup(){
-    return BACKUPS[Math.floor(Math.random()*BACKUPS.length)];
+/* 节点竞速：谁先成功谁赢 */
+function raceSites(sites, timeout = 2500) {
+    return new Promise(resolve => {
+        let finished = false;
+
+        const timer = setTimeout(() => {
+            if (!finished) {
+                finished = true;
+                resolve(sites[0]); // 兜底
+            }
+        }, timeout);
+
+        sites.forEach(site => {
+            const img = new Image();
+            img.onload = () => {
+                if (!finished) {
+                    finished = true;
+                    clearTimeout(timer);
+                    resolve(site);
+                }
+            };
+            img.onerror = () => {};
+            img.src = site + '/favicon.ico?_=' + Math.random();
+        });
+    });
 }
 
-(async ()=>{
-    const ok = await checkIPv6();
-    const status = document.getElementById('status');
+(async () => {
+    const hasV6 = await checkIPv6();
 
-    let target;
-    if(ok){
-        status.textContent = TEXT[LANG].v6;
-        target = MAIN_SITE;
-    }else{
-        status.textContent = TEXT[LANG].v4;
-        target = pickBackup();
+    let sites;
+    if (hasV6) {
+        statusEl.textContent = TEXT[LANG].v6;
+        sites = DIRECT_SITES;
+    } else {
+        statusEl.textContent = TEXT[LANG].v4;
+        sites = PROXY_SITES;
     }
 
-    setTimeout(()=>{
-        location.replace(target + path);
-    },600);
+    const fastest = await raceSites(sites);
+
+    statusEl.textContent = TEXT[LANG].go;
+
+    setTimeout(() => {
+        location.replace(fastest + path);
+    }, 300);
 })();
 </script>
 
